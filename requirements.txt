@@ -1,5 +1,6 @@
-moderntkinter
+customtkinter
 tkinter
 pymongo
 openai
 requests
+dotenv
