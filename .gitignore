@@ -2,3 +2,4 @@ venv/Invlude/*
 venv/Lib/*
 .env
 __pycache__
+test.py
