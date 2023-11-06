@@ -1,3 +1,5 @@
 moderntkinter
 tkinter
-mongodb
+pymongo
+openai
+requests
