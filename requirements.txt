@@ -1,5 +1,5 @@
 customtkinter
-tkinter
+tk
 pymongo
 openai
 requests
