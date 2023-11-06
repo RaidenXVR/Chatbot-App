@@ -3,4 +3,4 @@ tk
 pymongo
 openai
 requests
-dotenv
+python-dotenv
