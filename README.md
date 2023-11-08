@@ -5,7 +5,7 @@ Tugas UAS Socio-Informatika Dan Profesionalisme
 Aplikasi ini adalah aplikasi Windows berbasis Python berupa Chatbot menggunakan GPT-3.5 turbo dari OpenAI. 
 
 # Cara edit menggunakan venv
-clone repository ini di folder yang diinginkan dan membuka ```cmd``` atau ```powershell''', kemudian gunakan command:
+clone repository ini di folder yang diinginkan dan membuka ```cmd``` atau ```powershell```, kemudian gunakan command:
 ```
 git clone https://github.com/RaidenXVR/Chatbot-App
 ```
