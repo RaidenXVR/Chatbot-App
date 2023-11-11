@@ -7,6 +7,7 @@ import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import bcrypt
+from openai import OpenAI
 
 load_dotenv()
 mongo_key = os.getenv("MONGO_DB")
@@ -121,3 +122,16 @@ def generate_response(messages: list) -> str:
     openai.api_key = os.getenv("OPENAI_API")
     response = openai.ChatCompletion.create(model="gpt-4", messages=messages)
     return response["choices"][0]["message"]
+
+
+def generate_image(prompt: str):
+    openai.api_key = os.getenv("OPENAI_API")
+    response = openai.images.generate(
+        prompt=prompt,
+        model="dall-e-3",
+        quality="standard",
+        response_format="b64_json",
+        size="1024x1024",
+        n=1,
+    )
+    return response.data[0].b64_json
