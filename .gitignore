@@ -3,3 +3,5 @@ venv/Lib/*
 .env
 __pycache__
 test.py
+*.png
+*.txt
