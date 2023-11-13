@@ -124,9 +124,9 @@ class main(ctk.CTk):
         load_icon.pack(pady=5, padx=5)
         load_frame.pack(pady=5, padx=5, anchor="w", fill="both")
 
-        # response, message_type = asyncio.run(aires.get_first_response(a, 1))
-        response = "testing"
-        message_type = "new topic"
+        response, message_type = asyncio.run(aires.get_first_response(a, 1))
+        # response = "testing"
+        # message_type = "new topic"
         load_frame.pack_forget()
         echo_frame = ctk.CTkFrame(
             self.chatframe, corner_radius=10, fg_color="#999999", width=max_width
