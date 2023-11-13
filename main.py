@@ -3,15 +3,22 @@ import ai_response as aires
 from PIL import Image, ImageTk
 import threading
 import asyncio
+from pymongo import MongoClient
+import os
+from dotenv import load_dotenv
 
 
 class main(ctk.CTk):
     message = []
     is_new_button_clicked: bool = False
     buttons = []
+    client = MongoClient(os.getenv("MONGO_DB"))
+    db = client["Chatbot"]
+    collection = db["users"]
 
     def __init__(self):
         super().__init__()
+
         self.index = 0
         self.states = ["dark", "light"]
         self.conversation = []
@@ -104,7 +111,7 @@ class main(ctk.CTk):
         new_frame = ctk.CTkFrame(
             self.chatframe,
             corner_radius=10,
-            fg_color="green",
+            fg_color="blue",
             width=max_width,
         )
         new_frame.pack(pady=5, padx=20, anchor="e")
@@ -124,13 +131,11 @@ class main(ctk.CTk):
         load_icon.pack(pady=5, padx=5)
         load_frame.pack(pady=5, padx=5, anchor="w", fill="both")
 
-        response, message_type = asyncio.run(aires.get_first_response(a, 1))
-        # response = "testing"
-        # message_type = "new topic"
+        # response, message_type = asyncio.run(aires.get_first_response(a, 1))
+        response = "testing"
+        message_type = a
         load_frame.pack_forget()
-        echo_frame = ctk.CTkFrame(
-            self.chatframe, corner_radius=10, fg_color="#999999", width=max_width
-        )
+
         if message_type == "image":
             pass
         else:
@@ -141,11 +146,14 @@ class main(ctk.CTk):
                     width=self.history.winfo_width(),
                     height=50,
                     text=message_type,
-                    command=self.debug_print,
+                    command=lambda: self.topic_button(message_type),
                 )
                 new_button.pack(padx=5, pady=10, anchor="center")
                 self.buttons.append(new_button)
 
+            echo_frame = ctk.CTkFrame(
+                self.chatframe, corner_radius=10, fg_color="#999999", width=max_width
+            )
             echo_frame.pack(pady=5, padx=20, anchor="w")
             echo_text = ctk.CTkLabel(echo_frame, text="", wraplength=max_width)
             echo_text.configure(justify="left")
@@ -155,16 +163,43 @@ class main(ctk.CTk):
         # history_button = ctk.CTkButton(self.history, corner_radius=10, text="test")
 
     def new_button_clicked(self):
-        self.is_new_button_clicked = True
+        self.is_new_button_clicked = not self.is_new_button_clicked
+        print(self.is_new_button_clicked)
 
-    def debug_print(self):
-        self.message = [
-            {"role": "user", "content": "testing 1"},
-            {"role": "assistant", "content": "bot test2"},
-        ]
+    def topic_button(self, topic: str):
+        # self.message = self.collection.find_one({"_id"})
 
+        self.is_new_button_clicked = False
         children = self.chatframe.winfo_children()
         for child in children:
             child.destroy()
+
+        # generate new frame from messages
+        max_width = 350
+        i = 0
+        while i < len(self.message):
+            new_frame = ctk.CTkFrame(
+                self.chatframe,
+                corner_radius=10,
+                fg_color="blue",
+                width=max_width,
+            )
+            new_frame.pack(pady=5, padx=20, anchor="e")
+            new_label = ctk.CTkLabel(
+                new_frame, text=self.message[i]["content"], wraplength=max_width
+            )
+            new_label.configure(justify="left")
+            new_label.pack(pady=10, padx=10, anchor="nw")
+
+            echo_frame = ctk.CTkFrame(
+                self.chatframe, corner_radius=10, fg_color="#999999", width=max_width
+            )
+            echo_frame.pack(pady=5, padx=20, anchor="w")
+            echo_text = ctk.CTkLabel(
+                echo_frame, text=self.message[i + 1]["content"], wraplength=max_width
+            )
+            echo_text.configure(justify="left")
+            echo_text.pack(pady=10, padx=10, anchor="nw")
+            i += 2
 
         print("test test test")
