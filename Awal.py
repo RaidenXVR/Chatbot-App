@@ -15,6 +15,8 @@ class app(ctk.CTk):
     def __init__(self):
         super().__init__()
 
+        self.title("Kawanku.ai")
+        self.iconphoto(file="logo.png")
         self.geometry(f"{width_}x{height_}+{width_*0.1}+{height_*0.1}")
         self.grid_rowconfigure((0, 1, 2), weight=1)
         self.grid_columnconfigure((0, 1, 2), weight=1)

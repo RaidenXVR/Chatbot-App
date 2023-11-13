@@ -6,12 +6,16 @@ import asyncio
 
 
 class main(ctk.CTk):
+    message = []
+    is_new_button_clicked: bool = False
+    buttons = []
+
     def __init__(self):
         super().__init__()
         self.index = 0
         self.states = ["dark", "light"]
         self.conversation = []
-        self.title("Kawan.ai")
+        self.title("Kawanku.ai")
         ctk.set_appearance_mode(self.states[self.index])
         ctk.set_default_color_theme("green")
         self.geometry(f"{1280}x{720}")
@@ -27,7 +31,9 @@ class main(ctk.CTk):
         # buat frame pinggir kiri
         self.frame_1 = ctk.CTkFrame(self, width=320, corner_radius=10)
         self.frame_1.grid(row=0, column=1, rowspan=4, sticky="nsw")
-        self.button_1 = ctk.CTkButton(self.frame_1, text="new chat")
+        self.button_1 = ctk.CTkButton(
+            self.frame_1, text="new chat", command=self.new_button_clicked
+        )
         self.button_1.grid(row=0, column=0, padx=50, pady=40, sticky="nsew")
         self.history = ctk.CTkScrollableFrame(
             self.frame_1, label_text="History", height=400
@@ -101,10 +107,10 @@ class main(ctk.CTk):
             fg_color="green",
             width=max_width,
         )
-        new_frame.pack(pady=5, padx=5, anchor="e")
+        new_frame.pack(pady=5, padx=20, anchor="e")
         new_label = ctk.CTkLabel(new_frame, text=a, wraplength=max_width)
         new_label.configure(justify="left")
-        new_label.pack(pady=10, padx=20, anchor="nw")
+        new_label.pack(pady=10, padx=10, anchor="nw")
 
         load_frame = ctk.CTkFrame(
             self.chatframe, corner_radius=10, fg_color="#999999", width=max_width
@@ -118,7 +124,9 @@ class main(ctk.CTk):
         load_icon.pack(pady=5, padx=5)
         load_frame.pack(pady=5, padx=5, anchor="w", fill="both")
 
-        response, message_type = asyncio.run(aires.get_first_response(a, 1))
+        # response, message_type = asyncio.run(aires.get_first_response(a, 1))
+        response = "testing"
+        message_type = "new topic"
         load_frame.pack_forget()
         echo_frame = ctk.CTkFrame(
             self.chatframe, corner_radius=10, fg_color="#999999", width=max_width
@@ -128,10 +136,35 @@ class main(ctk.CTk):
         else:
             if message_type != "chat":
                 self.title2.configure(text=message_type)
-            echo_frame.pack(pady=5, padx=5, anchor="w")
+                new_button = ctk.CTkButton(
+                    self.history,
+                    width=self.history.winfo_width(),
+                    height=50,
+                    text=message_type,
+                    command=self.debug_print,
+                )
+                new_button.pack(padx=5, pady=10, anchor="center")
+                self.buttons.append(new_button)
+
+            echo_frame.pack(pady=5, padx=20, anchor="w")
             echo_text = ctk.CTkLabel(echo_frame, text="", wraplength=max_width)
             echo_text.configure(justify="left")
             echo_text.pack(pady=10, padx=10, anchor="nw")
             stream_text()
 
         # history_button = ctk.CTkButton(self.history, corner_radius=10, text="test")
+
+    def new_button_clicked(self):
+        self.is_new_button_clicked = True
+
+    def debug_print(self):
+        self.message = [
+            {"role": "user", "content": "testing 1"},
+            {"role": "assistant", "content": "bot test2"},
+        ]
+
+        children = self.chatframe.winfo_children()
+        for child in children:
+            child.destroy()
+
+        print("test test test")
