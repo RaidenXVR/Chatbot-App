@@ -5,5 +5,6 @@ openai
 requests
 python-dotenv
 bcrypt
-ttktheme
+ttkthemes
 packaging
+threading

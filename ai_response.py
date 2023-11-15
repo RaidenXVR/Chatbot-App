@@ -5,7 +5,7 @@ import io
 import time
 import os
 from pymongo import MongoClient
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key
 import bcrypt
 from openai import OpenAI, AsyncOpenAI
 import base64
@@ -21,7 +21,7 @@ col = db["users"]
 
 
 # for normal chat
-async def get_response(input: str, user_id: int, topic: str) -> str:
+def get_response(input: str, user_id: int, topic: str) -> str:
     user = col.find_one({"_id": user_id})
     message = [
         {
@@ -33,21 +33,26 @@ async def get_response(input: str, user_id: int, topic: str) -> str:
     message.extend(user["topics"][topic])
     message.append({"role": "user", "content": input})
 
-    response = await gen_response(message)
+    response = generate_response(message)
     response = response.content
 
     message = []
-    message.extend(user["topics"][topic])
+    message.append(user["topics"][topic])
     message.append({"role": "user", "content": input})
     message.append({"role": "user", "content": response})
-    data = {"topics": {topic: message}}
+
+    topics: list = user["topics"]
+    for tpc in topics:
+        if topic in tpc.keys():
+            tpc[topic] = message
+    data = {"topics": topics}
     col.update_one({"_id": user_id}, {"$set": data})
 
     return message[-1]["content"], "chat"
 
 
 # for first new topic chat
-async def get_first_response(input: str, user_id):
+def get_first_response(input: str, user_id):
     user = col.find_one({"_id": user_id})
     message = []
     message.append(
@@ -58,7 +63,7 @@ async def get_first_response(input: str, user_id):
     )
     message.append({"role": "user", "content": input})
 
-    topic = await gen_response(message)
+    topic = generate_response(message)
     topic = topic.content
 
     # Remove extra quotes and return the cleaned string
@@ -73,18 +78,20 @@ async def get_first_response(input: str, user_id):
         }
     )
     message.append({"role": "user", "content": input})
-    response = await gen_response(message)
+    response = generate_response(message)
     if len(response.content) < 1:
         return
     else:
         message = []
         message.append({"role": "user", "content": input})
         message.append({"role": "assistant", "content": response.content})
+        topics: list = user["topics"]
+        topics.append({topic: message})
         col.update_one(
             {"_id": user_id},
             {
                 "$set": {
-                    "topics": {topic: message},
+                    "topics": topics,
                 },
             },
         )
@@ -111,12 +118,14 @@ def sign_up(username: str, password: str):
     hash_password = bcrypt.hashpw(
         password=password.encode("utf-8"), salt=bcrypt.gensalt()
     )
+    user_id = count + 1
+    set_key(".env", "USER_ID", user_id)
     print(bcrypt.checkpw("80827".encode("utf-8"), hash_password))
     template = {
-        "_id": count + 1,
+        "_id": user_id,
         "username": username,
         "p": hash_password,
-        "topics": {},
+        "topics": [],
         "button": [],
     }
 
@@ -124,11 +133,11 @@ def sign_up(username: str, password: str):
     return True  # account signup succesful
 
 
-async def generate_response(messages: list = None, prompt: str = None) -> str:
-    openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API"))
+def generate_response(messages: list = None, prompt: str = None) -> str:
+    openai_client = OpenAI(api_key=os.getenv("OPENAI_API"))
     if not prompt == None:
         messages = [{"role": "user", "content": prompt}]
-    response = await openai_client.chat.completions.create(
+    response = openai_client.chat.completions.create(
         model="gpt-4-1106-preview", messages=messages
     )
     return response.choices[0].message
@@ -155,16 +164,12 @@ def generate_image(prompt: str):
     image.save(f"./img/{tm}.png")
 
 
-def test_input(input: str):
-    tm = 300.0
+def test_input(input: str, type: str):
+    time.sleep(3)
 
-    while tm > 0.0:
-        tm -= 0.01
-        print(tm)
-
-    return input
+    return input, type
 
 
-async def gen_response(messages: list = None, prompt: str = None):
-    response = await generate_response(messages=messages, prompt=prompt)
-    return response
+# async def gen_response(messages: list = None, prompt: str = None):
+#     response = await generate_response(messages=messages, prompt=prompt)
+#     return response
