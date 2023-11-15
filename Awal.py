@@ -3,6 +3,8 @@ import main
 from tkinter import *
 import customtkinter as ctk
 import ai_response as aires
+from dotenv import set_key, load_dotenv
+
 
 width_ = 800
 height_ = 600
