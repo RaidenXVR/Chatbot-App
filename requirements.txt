@@ -7,4 +7,5 @@ python-dotenv
 bcrypt
 ttkthemes
 packaging
-threading
+ctkmessagebox
+email_validator
