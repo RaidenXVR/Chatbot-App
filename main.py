@@ -3,20 +3,22 @@ import ai_response as aires
 from PIL import Image, ImageTk
 import threading
 import asyncio
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 import os
 from dotenv import load_dotenv
+import classes as clss
 
 
 class main(ctk.CTk):
     message = []
     is_new_button_clicked: bool = True
-    buttons = []
     current_topic = ""
     client = MongoClient(os.getenv("MONGO_DB"))
     db = client["Chatbot"]
     collection = db["users"]
     user_id = int(os.getenv("USER_ID"))
+    # buttons = collection.find_one({"_id": user_id})["buttons"]
+    buttons = []
 
     def __init__(self):
         super().__init__()
@@ -24,7 +26,7 @@ class main(ctk.CTk):
         self.index = 0
         self.states = ["dark", "light"]
         self.conversation = []
-        self.title("Kawanku.ai")
+        self.title("Kawanku.AI")
 
         ctk.set_appearance_mode(self.states[self.index])
         ctk.set_default_color_theme("dark-blue")
@@ -43,8 +45,8 @@ class main(ctk.CTk):
             size=(30, 30),
         )
         logo = ctk.CTkImage(
-            light_image=Image.open("./assets/logo.png"),
-            dark_image=Image.open("./assets/logo.png"),
+            light_image=Image.open("./assets/logoLM.png"),
+            dark_image=Image.open("./assets/logoDM.png"),
             size=(100, 125),
         )
 
@@ -101,11 +103,12 @@ class main(ctk.CTk):
         # buat bisa scroll
         self.title2 = ctk.CTkLabel(
             master=self.frame_2,
-            text="testing 1234567890",
+            text="",
             anchor="center",
-            width=self.frame_2.winfo_width(),
+            width=700,
             height=100,
-            font=("consolas", 20),
+            font=("Roboto", 20),
+            wraplength=500,
         )
         self.title2.pack(side="top", anchor="center", pady=20, padx=20)
         self.chatframe = ctk.CTkScrollableFrame(
@@ -136,6 +139,27 @@ class main(ctk.CTk):
         self.switch.configure(text=f"{self.states[self.index]} Mode")
 
     def get_text(self):
+        # cek for paying validity
+        self.submit_button.configure(state="disabled")
+
+        try:
+            user = self.collection.find_one({"_id": self.user_id})
+            if user["num_valid_msg"] < 1 and not user["payed"]:
+                e = clss.KawankuError(
+                    "Anda Belum Melakukan Pembayaran Untuk Memakai Aplikasi Ini. Jika Sudah Mohon Hubungi Admin: fitran.nizar@gmail.com."
+                )
+                e.warning_message("Pembayaran Tidak Terdeteksi.")
+                self.submit_button.configure(state="normal")
+
+                return
+        except errors.PyMongoError as e:
+            clss.KawankuError(
+                "Error: MongoDB Error. Periksa Koneksi Anda dan Coba Lagi"
+            ).warning_message("Error")
+            self.submit_button.configure(state="normal")
+
+            return
+
         # for text streaming/typing effect
         def stream_text():
             if len(response_text._text) < len(response):
@@ -151,7 +175,10 @@ class main(ctk.CTk):
                 # response, message_type = aires.get_first_response(
                 #     ipt, user_id=self.user_id
                 # )
-                response, message_type = aires.test_input(ipt, "topic")
+                response, message_type = aires.test_input(
+                    ipt,
+                    "topic panjang 122 345 4 534 975 294 129 128391 238729 84719 4798372 943792 398423 29472 3974 92 3",
+                )
             else:
                 response, message_type = aires.test_input(ipt, "chat")
                 # response, message_type = aires.get_response(
@@ -169,11 +196,13 @@ class main(ctk.CTk):
                 width=max_width,
             )
             new_frame.pack(pady=5, padx=20, anchor="e")
-            new_label = ctk.CTkLabel(new_frame, text=ipt, wraplength=max_width)
+            new_label = ctk.CTkLabel(
+                new_frame, text=ipt, wraplength=max_width, font=("Roboto", 15)
+            )
             new_label.configure(justify="left")
             new_label.pack(pady=10, padx=10, anchor="nw")
 
-            # loading frame: WIP
+            # loading frame
             global load_frame
             load_frame.pack(padx=20, pady=10, anchor="w")
             progress_bar = ctk.CTkProgressBar(
@@ -193,7 +222,8 @@ class main(ctk.CTk):
         self.text_box.delete("0.0", "end")
 
         # check if input empty. If empty, return
-        if len(ipt) < 1:
+        if len(ipt) <= 1:
+            self.submit_button.configure(state="normal")
             return
 
         # main GUI thread
@@ -231,42 +261,94 @@ class main(ctk.CTk):
             self.after(100, self.check_result)
         else:
             response, message_type = thread.result
+
             global load_frame
             load_frame.destroy()
-            self.is_new_button_clicked = False
-            if message_type == "image":
-                pass
-            else:
-                if message_type != "chat":
-                    self.title2.configure(text=message_type)
-                    new_button = ctk.CTkButton(
-                        self.history,
-                        width=self.history.winfo_width(),
-                        height=50,
-                        text=message_type,
-                        command=lambda: self.topic_button(
-                            button=new_button, topic=message_type
-                        ),
-                        fg_color="#0086b3",
+            if message_type != "error":
+                self.is_new_button_clicked = False
+                if message_type == "image":
+                    img_frame = ctk.CTkFrame(
+                        self.chatframe, width=350, height=350, corner_radius=10
                     )
-                    new_button.pack(padx=5, pady=10, anchor="center")
-                    self.buttons.append(new_button)
+                    img_frame.pack(padx=10, pady=10)
+                    img = ctk.CTkImage(
+                        light_image=Image.open(response),
+                        dark_image=Image.open(response),
+                        size=(350, 350),
+                    )
+                    image_label = ctk.CTkLabel(
+                        img_frame,
+                        width=350,
+                        height=350,
+                        text="",
+                        image=img,
+                    )
+                    image_label.pack()
+                else:
+                    if message_type != "chat":
+                        self.title2.configure(text=message_type)
+                        trash_img = ctk.CTkImage(
+                            light_image=Image.open("./assets/trash-can.png"),
+                            dark_image=Image.open("./assets/trash-can.png"),
+                            size=(30, 30),
+                        )
+                        button_frame = ctk.CTkFrame(
+                            self.history,
+                            width=self.history.winfo_width(),
+                            height=self.history.winfo_height(),
+                        )
+                        new_button = ctk.CTkButton(
+                            button_frame,
+                            width=150,
+                            height=50,
+                            text=message_type[:17] + "...",
+                            command=lambda: self.topic_button(
+                                button=new_button, topic=message_type
+                            ),
+                            fg_color="#0086b3",
+                            textvariable=message_type,
+                        )
+                        new_del_button = ctk.CTkButton(
+                            button_frame,
+                            width=50,
+                            height=50,
+                            text="",
+                            fg_color="#ff0000",
+                            command=lambda: self.delete_topic(
+                                frame_button_to_delete=button_frame
+                            ),
+                            image=trash_img,
+                        )
+                        new_del_button.pack(padx=5, pady=10, anchor="e", side="right")
+                        new_button.pack(padx=5, pady=10, anchor="w", side="left")
+                        button_frame.pack(fill="both")
 
-                max_width = 350
-                response_frame = ctk.CTkFrame(
-                    self.chatframe,
-                    corner_radius=10,
-                    fg_color="#999999",
-                    width=max_width,
-                )
-                response_frame.pack(pady=5, padx=20, anchor="w")
-                response_text = ctk.CTkLabel(
-                    response_frame, text="", wraplength=max_width
-                )
-                response_text.configure(justify="left")
-                response_text.pack(pady=10, padx=10, anchor="nw")
+                        self.buttons.append(button_frame)
 
-                stream_text()
+                    max_width = 350
+                    response_frame = ctk.CTkFrame(
+                        self.chatframe,
+                        corner_radius=10,
+                        fg_color="#999999",
+                        width=max_width,
+                    )
+                    response_frame.pack(pady=5, padx=20, anchor="w")
+                    response_text = ctk.CTkLabel(
+                        response_frame,
+                        text="",
+                        wraplength=max_width,
+                        font=("Roboto", 15),
+                    )
+                    response_text.configure(justify="left")
+                    response_text.pack(pady=10, padx=10, anchor="nw")
+
+                    stream_text()
+                    self.submit_button.configure(state="normal")
+
+            else:
+                e = clss.KawankuError(response)
+                e.warning_message("Error")
+                self.submit_button.configure(state="normal")
 
     def new_button_clicked(self):
         self.is_new_button_clicked = not self.is_new_button_clicked
@@ -274,8 +356,6 @@ class main(ctk.CTk):
         self.title2.configure(text="")
         for child in children:
             child.destroy()
-
-        print(self.is_new_button_clicked)
 
     def topic_button(self, button, topic: str):
         self.is_new_button_clicked = False
@@ -321,4 +401,22 @@ class main(ctk.CTk):
             response_text.pack(pady=10, padx=10, anchor="nw")
             i += 2
 
-        print("test test test")
+    def delete_topic(self, frame_button_to_delete):
+        topic = frame_button_to_delete.winfo_children()[0]._textvariable
+        try:
+            chat_to_delete = {"$pull": {"topics": {topic: {"$exists": True}}}}
+            self.collection.update_one({"_id": self.user_id}, chat_to_delete)
+            frame_button_to_delete.destroy()
+            frame_children = self.chatframe.winfo_children()
+
+            self.title2.configure(text="")
+
+            for child in frame_children:
+                child.destroy()
+
+            self.is_new_button_clicked = True
+        except Exception:
+            e = clss.KawankuError(
+                "Gagal Menghapus Pesan. Periksa Koneksi Anda Dan Coba Lagi."
+            )
+            e.warning_message("Gagal Menghapus Pesan.")
