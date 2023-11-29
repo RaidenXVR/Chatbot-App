@@ -3,17 +3,15 @@ from CTkMessagebox import CTkMessagebox
 import email_validator
 from email_validator import validate_email, EmailNotValidError
 from PIL import Image
-from ai_response import sign_up
+from ai_response import sign_up, get_profile, logout, load_from_yaml, decrypt
+import os
+from dotenv import load_dotenv
 
-global DB_ceritanya
-DB_ceritanya = []
 
-
-class KawankuError(ctk.CTk):
+class KawankuError(ctk.CTkToplevel):
     def __init__(self, text: str):
         super().__init__()
         self.text = text
-        self.error_type = {1: "cancel", 2: "warning"}
         # Get screen dimensions
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -32,7 +30,7 @@ class KawankuError(ctk.CTk):
             master=self,
             title=titles,
             message=self.text,
-            icon=self.error_type[2],
+            icon="./assets/warning.png",
             option_1="Ok",
             justify="left",
         )
@@ -44,10 +42,21 @@ class KawankuError(ctk.CTk):
             master=self,
             title=titles,
             message=self.text,
-            icon=self.error_type[1],
+            icon="./assets/cross.png",
             option_1="Ok",
         )
         if msg.get() == "Ok":
+            self.destroy()
+
+    def success_message(self, titles: str):
+        msg = CTkMessagebox(
+            master=self,
+            title=titles,
+            message=self.text,
+            icon="./assets/check.png",
+            option_1="OK",
+        )
+        if msg.get() == "OK":
             self.destroy()
 
 
@@ -59,38 +68,38 @@ class ForgetPassword(ctk.CTkToplevel):
         self.screen_height = self.winfo_screenheight()
         x = (self.screen_width / 2) - (300) + 100
         y = (self.screen_height / 2) - (200)
-        self.geometry("%dx%d+%d+%d" % (600, 400, x, y))
+        self.geometry("%dx%d+%d+%d" % (600, 200, x, y))
         self.resizable(False, False)
         self.attributes("-topmost", "true")
         self.title("Forget Password")
-        self.frame = ctk.CTkFrame(self, width=540, height=340)
+        self.frame = ctk.CTkFrame(self, width=540, height=150)
         self.title_label = ctk.CTkLabel(
             self.frame,
-            text="Buktikan Bahwa Ini Anda:",
+            text="Silahkan Hubungi Admin Di Email kawanku.ai@gmail.com untuk bantuan lebih lanjut.",
             anchor="w",
             width=500,
-            font=("consolas", 30),
+            font=("consolas", 20),
+            wraplength=500,
         )
-        self.text_box = ctk.CTkTextbox(self.frame, width=500, height=200)
         self.button = ctk.CTkButton(
-            self.frame, text="Confirm", height=40, command=self.send_request
+            self.frame, text="OK", height=40, command=self.destroy
         )
 
         # penempatan
         self.frame.pack_propagate((0))
         self.frame.pack(expand=True)
         self.title_label.pack()
-        self.text_box.pack(pady=20)
         self.button.pack(side=ctk.BOTTOM, expand=True)
 
     def send_request(self):
         if self.text_box.get("1.0", "end") == "\n":
-            error("Mohon isi alasan terlebih dahulu...").warning_message("Peringatan")
+            err = KawankuError("Mohon isi alasan terlebih dahulu...")
+            err.warning_message("Peringatan")
         else:
             a = CTkMessagebox(
                 title="request terkirim",
                 message="permintaan telah dikirim ke admin...",
-                icon="check",
+                icon="./assets/check.png",
                 option_1="Ok",
             )
             if a.get() == "Ok":
@@ -100,12 +109,13 @@ class ForgetPassword(ctk.CTkToplevel):
 class Register(ctk.CTkToplevel):
     def __init__(self):
         super().__init__()
+
         self.grab_set()
         self.geometry(
             f"400x600+{(self.winfo_screenwidth()-400)/2}+{(self.winfo_screenheight()-600)/2}"
         )
         self.resizable(False, False)
-        self.title = "Registasi"
+        self.title("Register")
         self.frame = ctk.CTkFrame(self, width=340, height=500)
         self.images = ctk.CTkImage(
             dark_image=Image.open("./assets/logoDM.png"),
@@ -114,7 +124,7 @@ class Register(ctk.CTkToplevel):
         )
         self.base = ctk.CTkFrame(self.frame, fg_color="transparent")
         self.logo = ctk.CTkLabel(self.base, image=self.images, text="")
-        self.title = ctk.CTkLabel(self.frame, text="Register", font=("consolas", 30))
+        self.title2 = ctk.CTkLabel(self.frame, text="Register", font=("consolas", 30))
         self.id = ctk.CTkEntry(self.frame, width=300, placeholder_text="Username")
         self.passn = ctk.CTkEntry(
             self.frame, width=300, placeholder_text="Password", show="*"
@@ -131,7 +141,7 @@ class Register(ctk.CTkToplevel):
         self.frame.pack(expand="True")
         self.base.pack(side=ctk.TOP)
         self.logo.pack(side=ctk.TOP)
-        self.title.pack(side=ctk.TOP, pady=20)
+        self.title2.pack(side=ctk.TOP, pady=20)
         self.id.pack(side=ctk.TOP, pady=5)
         self.passn.pack(side=ctk.TOP, pady=5)
         self.email.pack(side=ctk.TOP, pady=5)
@@ -149,7 +159,7 @@ class Register(ctk.CTkToplevel):
         Confirmation.confirm(self, username, pass_awal, pass_akhir, alamat_email)
 
 
-class Confirmation(ctk.CTk):
+class Confirmation(ctk.CTkToplevel):
     def __init__(self):
         super().__init__()
 
@@ -161,16 +171,19 @@ class Confirmation(ctk.CTk):
         except EmailNotValidError as e:
             b = KawankuError("Email is invalid or fake")
             b.warning_message("Error: Invalid Email")
+        except email_validator.exceptions_types.EmailSyntaxError as e:
+            b = KawankuError("Email is invalid or fake")
+            b.warning_message("Error: Invalid Email")
         if pasw != passs:
             a = KawankuError("Password and confirmed password is not equal...")
             a.warning_message("Error: Unequal Password Confirmation")
 
-        elif email_check and (pasw == passs):
+        elif email_check and pasw == passs:
             sign_up_success = sign_up(email=email, username=username, password=pasw)
             if sign_up_success:
                 CTkMessagebox(
                     title="Success",
-                    icon="check",
+                    icon="./assets/check.png",
                     message="Registrasi berhasil dilakukan, silakan login di menu login.",
                     option_1="Ok",
                 )
@@ -182,5 +195,67 @@ class Confirmation(ctk.CTk):
                 err.warning_message("Error: Registrasi Gagal")
 
         else:
-            c = error("Registrasi gagal dilakukan")
+            c = KawankuError("Registrasi gagal dilakukan")
             c.warning_message("Error: Unknown Error")
+
+
+class Profile(ctk.CTkToplevel):
+    main_root = ""
+
+    def __init__(self, root):
+        super().__init__()
+        self.main_root = root
+        self.title("Profil")
+        self.geometry(f"{400}x{500}")
+        self.grab_set()
+
+        try:
+            uid = eval(
+                decrypt(
+                    load_from_yaml("./assets/lsr.yaml"), b"ftrn80827310103rdnxvrnzr"
+                )
+            )["USER_ID"]
+
+            username, email = get_profile(user_id=uid)
+        except Exception as e:
+            print(e)
+            err = KawankuError(
+                "Ada Kesalahan Dalam Memuat Profil. Periksa Koneksi Dan Coba Lagi."
+            )
+            err.warning_message("Gagal Memuat Profil.")
+            self.destroy()
+            return
+
+        frame_profile = ctk.CTkFrame(self, width=400, height=500, corner_radius=10)
+        frame_profile.pack(
+            padx=10,
+            pady=10,
+            fill="x",
+        )
+        username_label = ctk.CTkLabel(
+            frame_profile, text="Username: " + username, font=("Roboto", 12)
+        )
+        email_label = ctk.CTkLabel(
+            frame_profile, text="Email: " + email, font=("Roboto", 12)
+        )
+        username_label.pack(padx=20, pady=20)
+        email_label.pack(padx=10, pady=20)
+        logout_button = ctk.CTkButton(
+            frame_profile,
+            width=100,
+            height=80,
+            text="Logout",
+            command=self.logout_handle,
+        )
+        cancel_button = ctk.CTkButton(
+            frame_profile, width=100, height=80, text="Cancel", command=self.destroy
+        )
+        logout_button.pack(pady=40, padx=20)
+        cancel_button.pack(pady=10, padx=20)
+
+        self.wait_window()
+
+    def logout_handle(self):
+        log = logout()
+        if log:
+            self.main_root.destroy()
