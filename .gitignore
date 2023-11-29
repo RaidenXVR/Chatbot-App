@@ -1,7 +1,10 @@
 venv/Invlude/*
 venv/Lib/*
+venv
 .env
 __pycache__
 test.py
 img/*.png
 *.txt
+*.yaml
+temp.*
