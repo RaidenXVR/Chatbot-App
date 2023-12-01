@@ -144,7 +144,7 @@ def get_first_response(input: str, user_id):
         message.append(
             {
                 "role": "system",
-                "content": "Make a topic title from the user input. Send only the titles without any confirmations and don't use quotation marks or apostrophes. You should not make an image even if the user ask for it. Just make the topic only.",
+                "content": "Make a topic title from the user input. Send only the titles without any confirmations and don't use quotation marks or apostrophes. You should not make an image or lists even if the user ask for it. Just make the topic only with a few words.",
             }
         )
         message.append({"role": "user", "content": input})
