@@ -15,6 +15,7 @@ class MainApp(ctk.CTk):
     message = []
     is_new_button_clicked: bool = True
     current_topic = ""
+    cp_sv_button_entered = False
 
     def __init__(self):
         super().__init__()
@@ -236,8 +237,10 @@ class MainApp(ctk.CTk):
             )
             new_label.configure(justify="left")
             new_label.pack(pady=10, padx=10, anchor="nw", side="right")
-            new_label.bind("<Enter>", self.entered)
-            new_frame.bind("<Leave>", self.leave)
+            new_label.bind(
+                "<Button-3>",
+                lambda event, label=new_frame: self.click_frame(event, label, "text"),
+            )
 
             # loading frame
             global load_frame
@@ -325,6 +328,12 @@ class MainApp(ctk.CTk):
                         self.title2.configure(text=tp)
                         self.make_button(topic=tp)
                     self.submit_button.configure(state="normal")
+                    image_label.bind(
+                        "<Button-3>",
+                        lambda event, label=img_frame: self.click_frame(
+                            event, label, "image"
+                        ),
+                    )
 
                 else:
                     if message_type != "chat":
@@ -347,8 +356,12 @@ class MainApp(ctk.CTk):
                     )
                     response_text.configure(justify="left")
                     response_text.pack(pady=10, padx=10, anchor="nw", side="left")
-                    response_text.bind("<Enter>", self.entered)
-                    response_frame.bind("<Leave>", self.leave)
+                    response_text.bind(
+                        "<Button-3>",
+                        lambda event, label=response_frame: self.click_frame(
+                            event, label, "image"
+                        ),
+                    )
                     stream_text()
                     self.submit_button.configure(state="normal")
 
@@ -402,9 +415,10 @@ class MainApp(ctk.CTk):
             )
             new_label.configure(justify="left")
             new_label.pack(pady=5, padx=20, anchor="e", side="right")
-            new_label.bind("<Enter>", self.entered)
-            # new_frame.bind("<Enter>", self.entered)
-            new_frame.bind("<Leave>", self.leave)
+            new_label.bind(
+                "<Button-3>",
+                lambda event, label=new_frame: self.click_frame(event, label, "text"),
+            )
 
             response_frame = ctk.CTkFrame(
                 self.chatframe, corner_radius=10, fg_color="#999999", width=max_width
@@ -423,9 +437,12 @@ class MainApp(ctk.CTk):
                         text="",
                         image=image_chat,
                     )
-                    response_text.bind("<Enter>", self.entered)
-                    response_frame.bind("<Leave>", self.leave)
-
+                    response_text.bind(
+                        "<Button-3>",
+                        lambda event, label=response_frame: self.click_frame(
+                            event, label, "image"
+                        ),
+                    )
                 except FileNotFoundError as e:
                     err = clss.KawankuError("Gambar Tidak Ditemukan di dalam file.")
                     err.warning_message("Gambar Tidak Ditemukan.")
@@ -437,91 +454,48 @@ class MainApp(ctk.CTk):
                     font=("Roboto", 18),
                 )
                 response_text.configure(justify="left")
-                response_text.bind("<Enter>", self.entered)
-                response_frame.bind("<Leave>", self.leave)
-
+                response_text.bind(
+                    "<Button-3>",
+                    lambda event, label=response_frame: self.click_frame(
+                        event, label, "text"
+                    ),
+                )
             response_text.pack(pady=5, padx=20, anchor="nw", side="left")
+
             i += 2
 
-    def entered(self, event):
-        frame = event.widget.master.master
-        if not self.button_exist(frame=frame):
-            try:
-                res_frame = int(str(frame)[59:])
-            except ValueError:
-                res_frame = 1
-            frame.configure(width=420)
-            is_image = False
-            for child in frame.winfo_children():
-                if isinstance(child, ctk.CTkLabel):
-                    if len(child._text) == 0 and child._image != None:
-                        is_image = True
-            if not is_image:
-                button = ctk.CTkButton(
-                    frame,
-                    width=80,
-                    corner_radius=10,
-                    text="Copy",
-                    command=lambda frm=frame: self.copy_text(frm),
-                )
-            else:
-                button = ctk.CTkButton(
-                    frame,
-                    width=80,
-                    corner_radius=10,
-                    text="Save",
-                    command=lambda frm=frame: self.export_img(frm),
-                )
-            if res_frame % 2 == 0:
-                button.pack(padx=10, pady=10, anchor="e", side="right")
-            else:
-                button.pack(padx=10, pady=10, anchor="w", side="left")
-
-    def button_exist(self, frame):
-        for child in frame.winfo_children():
+    def click_frame(self, event, label, type):
+        widget = event.widget
+        for child in widget.master.master.winfo_children():
             if isinstance(child, ctk.CTkButton):
-                return True
-
-        return False
-
-    def leave(self, event):
-        frame = event.widget.master
-        frame.configure(width=350)
-        children = frame.winfo_children()
-        try:
-            res_frame = int(str(frame)[59:])
-        except ValueError:
-            res_frame = 1
-
-        # Get the mouse coordinates
-        x = event.x
-        y = event.y
-        for child in children:
-            # Get the child widget's bounding box
-            child_bbox = child.bbox("all")
-
-            # Check if the mouse is within the child widget's bounding box
-            if (
-                x >= child_bbox[0]
-                and x <= child_bbox[2]
-                and y >= child_bbox[1]
-                and y <= child_bbox[3]
-                and res_frame % 2 == 1
-            ):
-                # If the mouse is within the child widget, don't destroy the button
                 return
-            elif (
-                x >= child_bbox[0]
-                and x >= child_bbox[2]
-                and y >= child_bbox[1]
-                and y <= child_bbox[3]
-                and res_frame % 2 == 0
-            ):
-                return
-        # If the mouse is not within the bounds of any child widgets, destroy the button
-        for child in children:
-            if isinstance(child, ctk.CTkButton):
-                child.destroy()
+        if type == "text":
+            button = ctk.CTkButton(
+                event.widget.master.master,
+                width=80,
+                corner_radius=10,
+                text="Copy",
+                font=("Roboto", 15),
+                command=lambda frm=event.widget.master.master: self.copy_text(frm),
+            )
+        elif type == "image":
+            button = ctk.CTkButton(
+                event.widget.master.master,
+                width=80,
+                corner_radius=10,
+                text="Save",
+                font=("Roboto", 15),
+                command=lambda frm=event.widget.master.master: self.export_img(frm),
+            )
+        button.place(
+            relx=event.x / widget.winfo_width(), rely=event.y / widget.winfo_height()
+        )
+        button.bind("<Leave>", lambda event, btn=button: self.button_leave(event, btn))
+        button.lift()
+
+    def button_leave(self, event, button):
+        if not isinstance(event.widget, ctk.CTkCanvas):
+            button.destroy()
 
     def copy_text(self, the_master):
         for child in the_master.winfo_children():
