@@ -2,7 +2,7 @@
 Tugas UAS Socio-Informatika Dan Profesionalisme
 
 # Deskripsi
-Aplikasi ini adalah aplikasi Windows berbasis Python berupa Chatbot menggunakan GPT-3.5 turbo dari OpenAI. 
+Aplikasi ini adalah aplikasi Windows berbasis Python berupa Chatbot menggunakan GPT-4 turbo dari OpenAI. 
 
 # Cara edit menggunakan venv
 clone repository ini di folder yang diinginkan dan membuka ```cmd``` atau ```powershell```, kemudian gunakan command:
